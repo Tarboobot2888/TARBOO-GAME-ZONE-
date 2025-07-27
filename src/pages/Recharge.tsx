@@ -2,96 +2,68 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { useSearchParams, useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
-import { Zap, Star, Clock, Shield, Filter, Search, Grid, List } from "lucide-react"
-import { useInventory } from "../contexts/InventoryContext"
+import { Zap, Search, Filter, Grid, List, ShoppingCart } from "lucide-react"
 import { useAuth } from "../contexts/AuthContext"
 import { useCart } from "../contexts/CartContext"
 import { useNotification } from "../contexts/NotificationContext"
-import { useLanguage } from "../contexts/LanguageContext"
+import { useInventory } from "../contexts/InventoryContext"
 import { logPageView, logSearch } from "../services/analytics"
 import LoadingSpinner from "../components/LoadingSpinner"
+import GameCard from "../components/GameCard"
 import RechargePackageCard from "../components/RechargePackageCard"
-import FilterSidebar from "../components/FilterSidebar"
 
 const Recharge: React.FC = () => {
-  const [searchParams] = useSearchParams()
-  const navigate = useNavigate()
   const { currentUser } = useAuth()
   const { addToCart } = useCart()
   const { addNotification } = useNotification()
-  const { t } = useLanguage()
-  const { rechargePackages, loading, searchPackages, getPackagesByGame } = useInventory()
+  const { games, rechargePackages, loading, searchGames } = useInventory()
 
-  const [selectedGame, setSelectedGame] = useState(searchParams.get("game") || "")
+  const [selectedGame, setSelectedGame] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
+  const [filteredGames, setFilteredGames] = useState(games)
   const [filteredPackages, setFilteredPackages] = useState(rechargePackages)
-  const [showFilters, setShowFilters] = useState(false)
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [sortBy, setSortBy] = useState("popular")
-  const [priceRange, setPriceRange] = useState([0, 1000])
-  const [selectedRegion, setSelectedRegion] = useState("")
-
-  const games = [
-    { id: "fifa", name: "FIFA Mobile", nameAr: "فيفا موبايل", icon: "⚽", color: "bg-green-500" },
-    { id: "pubg", name: "PUBG Mobile", nameAr: "ببجي موبايل", icon: "🔫", color: "bg-orange-500" },
-    { id: "freefire", name: "Free Fire", nameAr: "فري فاير", icon: "🔥", color: "bg-red-500" },
-    { id: "cod", name: "Call of Duty", nameAr: "كول أوف ديوتي", icon: "💀", color: "bg-gray-800" },
-    { id: "pes", name: "PES Mobile", nameAr: "بيس موبايل", icon: "⚽", color: "bg-blue-500" },
-    { id: "clash", name: "Clash of Clans", nameAr: "كلاش أوف كلانس", icon: "🏰", color: "bg-yellow-500" },
-  ]
+  const [showFilters, setShowFilters] = useState(false)
 
   useEffect(() => {
     logPageView("recharge", currentUser?.uid)
   }, [currentUser])
 
   useEffect(() => {
-    let filtered = rechargePackages
+    let filtered = games
 
-    // Filter by selected game
-    if (selectedGame) {
-      filtered = getPackagesByGame(selectedGame)
-    }
-
-    // Filter by search query
     if (searchQuery) {
-      filtered = searchPackages(searchQuery)
+      filtered = searchGames(searchQuery)
       logSearch(searchQuery, filtered.length, currentUser?.uid)
     }
 
-    // Filter by price range
-    filtered = filtered.filter((pkg) => pkg.price >= priceRange[0] && pkg.price <= priceRange[1])
-
-    // Filter by region
-    if (selectedRegion) {
-      filtered = filtered.filter((pkg) => pkg.region.includes(selectedRegion))
-    }
-
-    // Sort packages
+    // Sort games
     switch (sortBy) {
-      case "price-low":
-        filtered.sort((a, b) => a.price - b.price)
-        break
-      case "price-high":
-        filtered.sort((a, b) => b.price - a.price)
+      case "name":
+        filtered.sort((a, b) => a.name.localeCompare(b.name))
         break
       case "popular":
         filtered.sort((a, b) => (b.isPopular ? 1 : 0) - (a.isPopular ? 1 : 0))
-        break
-      case "newest":
-        filtered.sort((a, b) => b.createdAt - a.createdAt)
         break
       default:
         break
     }
 
-    setFilteredPackages(filtered)
-  }, [selectedGame, searchQuery, rechargePackages, sortBy, priceRange, selectedRegion])
+    setFilteredGames(filtered)
+
+    // Filter packages by selected game
+    if (selectedGame) {
+      const gamePackages = rechargePackages.filter((pkg) => pkg.gameId === selectedGame)
+      setFilteredPackages(gamePackages)
+    } else {
+      setFilteredPackages(rechargePackages)
+    }
+  }, [searchQuery, selectedGame, games, rechargePackages, sortBy])
 
   const handleGameSelect = (gameId: string) => {
-    setSelectedGame(gameId)
-    navigate(`/recharge?game=${gameId}`)
+    setSelectedGame(gameId === selectedGame ? "" : gameId)
   }
 
   const handleAddToCart = (packageData: any) => {
@@ -101,7 +73,6 @@ const Recharge: React.FC = () => {
         title: "تسجيل الدخول مطلوب",
         message: "يجب تسجيل الدخول أولاً لإضافة العناصر للسلة",
       })
-      navigate("/login")
       return
     }
 
@@ -110,39 +81,23 @@ const Recharge: React.FC = () => {
       type: "recharge",
       gameId: packageData.gameId,
       gameName: packageData.gameName,
-      title: packageData.packageName,
+      title: packageData.title,
       price: packageData.price,
-      image: `/placeholder.svg?height=200&width=300&text=${packageData.gameName}`,
+      image: packageData.image || `/placeholder.svg?height=200&width=300&text=${packageData.gameName}`,
       details: packageData,
     })
 
     addNotification({
       type: "success",
       title: "تم الإضافة للسلة",
-      message: `تم إضافة ${packageData.packageName} للسلة بنجاح`,
+      message: `تم إضافة ${packageData.title} للسلة بنجاح`,
     })
-  }
-
-  const handleInstantRecharge = (packageData: any) => {
-    if (!currentUser) {
-      addNotification({
-        type: "warning",
-        title: "تسجيل الدخول مطلوب",
-        message: "يجب تسجيل الدخول أولاً للشحن الفوري",
-      })
-      navigate("/login")
-      return
-    }
-
-    // Add to cart and redirect to checkout
-    handleAddToCart(packageData)
-    navigate("/checkout")
   }
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner size="lg" text="جاري تحميل باقات الشحن..." />
+        <LoadingSpinner size="lg" text="جاري تحميل الألعاب..." />
       </div>
     )
   }
@@ -150,7 +105,7 @@ const Recharge: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 text-white py-16">
+      <section className="bg-gradient-to-br from-green-600 via-blue-600 to-purple-700 text-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -160,45 +115,15 @@ const Recharge: React.FC = () => {
           >
             <h1 className="text-4xl md:text-6xl font-bold mb-6">
               <Zap className="inline-block h-12 w-12 ml-4 text-yellow-400" />
-              شحن الألعاب الفوري
+              شحن الألعاب
             </h1>
-            <p className="text-xl md:text-2xl mb-8 text-gray-200">اشحن ألعابك المفضلة في ثوانٍ معدودة بأفضل الأسعار</p>
+            <p className="text-xl md:text-2xl mb-8 text-gray-200">اشحن ألعابك المفضلة بأسرع وقت وأفضل الأسعار</p>
           </motion.div>
         </div>
       </section>
 
-      {/* Games Selection */}
-      <section className="py-8 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">اختر لعبتك المفضلة</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {games.map((game) => (
-              <motion.button
-                key={game.id}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => handleGameSelect(game.id)}
-                className={`p-4 rounded-lg border-2 transition-all ${
-                  selectedGame === game.id
-                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                    : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
-                } bg-white dark:bg-gray-800`}
-              >
-                <div
-                  className={`w-12 h-12 ${game.color} rounded-lg flex items-center justify-center text-2xl mx-auto mb-2`}
-                >
-                  {game.icon}
-                </div>
-                <h3 className="font-semibold text-gray-900 dark:text-white text-sm">{game.nameAr}</h3>
-                <p className="text-xs text-gray-600 dark:text-gray-400">{game.name}</p>
-              </motion.button>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Search and Filters */}
-      <section className="py-6 bg-gray-50 dark:bg-gray-900">
+      <section className="py-6 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
             {/* Search Bar */}
@@ -209,7 +134,7 @@ const Recharge: React.FC = () => {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="ابحث عن باقات الشحن..."
+                  placeholder="ابحث عن الألعاب..."
                   className="w-full pr-10 pl-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
@@ -224,9 +149,7 @@ const Recharge: React.FC = () => {
                 className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
               >
                 <option value="popular">الأكثر شعبية</option>
-                <option value="price-low">السعر: من الأقل للأعلى</option>
-                <option value="price-high">السعر: من الأعلى للأقل</option>
-                <option value="newest">الأحدث</option>
+                <option value="name">الاسم</option>
               </select>
 
               {/* View Mode */}
@@ -266,8 +189,8 @@ const Recharge: React.FC = () => {
 
           {/* Results Count */}
           <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
-            تم العثور على {filteredPackages.length} باقة شحن
-            {selectedGame && <span className="mr-2">في لعبة {games.find((g) => g.id === selectedGame)?.nameAr}</span>}
+            تم العثور على {filteredGames.length} لعبة
+            {selectedGame && <span className="mr-2">• {filteredPackages.length} باقة شحن متاحة</span>}
           </div>
         </div>
       </section>
@@ -275,30 +198,64 @@ const Recharge: React.FC = () => {
       {/* Main Content */}
       <section className="py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex gap-8">
-            {/* Filters Sidebar */}
-            {showFilters && (
-              <div className="w-64 flex-shrink-0">
-                <FilterSidebar
-                  priceRange={priceRange}
-                  setPriceRange={setPriceRange}
-                  selectedRegion={selectedRegion}
-                  setSelectedRegion={setSelectedRegion}
-                />
-              </div>
-            )}
-
-            {/* Packages Grid/List */}
-            <div className="flex-1">
-              {filteredPackages.length === 0 ? (
+          {!selectedGame ? (
+            // Games Grid
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">اختر لعبتك المفضلة</h2>
+              {filteredGames.length === 0 ? (
                 <div className="text-center py-16">
                   <Zap className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">لا توجد باقات شحن متاحة</h3>
-                  <p className="text-gray-600 dark:text-gray-400">جرب تغيير معايير البحث أو الفلاتر</p>
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">لا توجد ألعاب متاحة</h3>
+                  <p className="text-gray-600 dark:text-gray-400">جرب تغيير معايير البحث</p>
                 </div>
               ) : (
                 <div
-                  className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}
+                  className={
+                    viewMode === "grid"
+                      ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6"
+                      : "space-y-4"
+                  }
+                >
+                  {filteredGames.map((game, index) => (
+                    <motion.div
+                      key={game.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6, delay: index * 0.1 }}
+                      onClick={() => handleGameSelect(game.id)}
+                      className="cursor-pointer"
+                    >
+                      <GameCard game={game} />
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            // Recharge Packages
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  باقات الشحن - {games.find((g) => g.id === selectedGame)?.nameAr}
+                </h2>
+                <button onClick={() => setSelectedGame("")} className="text-blue-600 hover:text-blue-700 font-semibold">
+                  العودة للألعاب
+                </button>
+              </div>
+
+              {filteredPackages.length === 0 ? (
+                <div className="text-center py-16">
+                  <ShoppingCart className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">لا توجد باقات شحن متاحة</h3>
+                  <p className="text-gray-600 dark:text-gray-400">باقات الشحن لهذه اللعبة ستكون متاحة قريباً</p>
+                </div>
+              ) : (
+                <div
+                  className={
+                    viewMode === "grid"
+                      ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                      : "space-y-4"
+                  }
                 >
                   {filteredPackages.map((pkg, index) => (
                     <motion.div
@@ -307,63 +264,13 @@ const Recharge: React.FC = () => {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.6, delay: index * 0.1 }}
                     >
-                      <RechargePackageCard
-                        package={pkg}
-                        viewMode={viewMode}
-                        onAddToCart={() => handleAddToCart(pkg)}
-                        onInstantRecharge={() => handleInstantRecharge(pkg)}
-                      />
+                      <RechargePackageCard package={pkg} viewMode={viewMode} onAddToCart={() => handleAddToCart(pkg)} />
                     </motion.div>
                   ))}
                 </div>
               )}
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-16 bg-white dark:bg-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-12">
-            لماذا تختار خدمة الشحن لدينا؟
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {[
-              {
-                icon: <Zap className="h-8 w-8 text-yellow-500" />,
-                title: "شحن فوري",
-                description: "احصل على شحنتك في أقل من 5 دقائق",
-              },
-              {
-                icon: <Shield className="h-8 w-8 text-green-500" />,
-                title: "آمان مضمون",
-                description: "حماية كاملة لبياناتك ومعاملاتك",
-              },
-              {
-                icon: <Clock className="h-8 w-8 text-blue-500" />,
-                title: "دعم 24/7",
-                description: "فريق دعم متاح طوال اليوم لمساعدتك",
-              },
-              {
-                icon: <Star className="h-8 w-8 text-purple-500" />,
-                title: "أفضل الأسعار",
-                description: "أسعار تنافسية وعروض حصرية",
-              },
-            ].map((feature, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-                className="text-center p-6 bg-gray-50 dark:bg-gray-700 rounded-lg"
-              >
-                <div className="flex justify-center mb-4">{feature.icon}</div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{feature.title}</h3>
-                <p className="text-gray-600 dark:text-gray-400">{feature.description}</p>
-              </motion.div>
-            ))}
-          </div>
+          )}
         </div>
       </section>
     </div>
