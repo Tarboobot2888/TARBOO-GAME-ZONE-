@@ -360,22 +360,34 @@ const Home: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <TestimonialCard
-              name="أحمد محمد"
-              rating={5}
-              comment="خدمة ممتازة وسريعة، تم تسليم الشحنة خلال دقائق"
-              game="PUBG Mobile"
+              testimonial={{
+                id: "1",
+                name: "أحمد محمد",
+                rating: 5,
+                comment: "خدمة ممتازة وسريعة، تم تسليم الشحنة خلال دقائق",
+                game: "PUBG Mobile",
+                avatar: "/placeholder-user.jpg",
+              }}
             />
             <TestimonialCard
-              name="فاطمة علي"
-              rating={5}
-              comment="أفضل موقع لشراء حسابات الألعاب، جودة عالية وأسعار مناسبة"
-              game="Free Fire"
+              testimonial={{
+                id: "2",
+                name: "فاطمة علي",
+                rating: 5,
+                comment: "أفضل موقع لشراء حسابات الألعاب، جودة عالية وأسعار مناسبة",
+                game: "Free Fire",
+                avatar: "/placeholder-user.jpg",
+              }}
             />
             <TestimonialCard
-              name="محمد سالم"
-              rating={4}
-              comment="دعم فني ممتاز ومساعدة سريعة، أنصح بالتعامل معهم"
-              game="Fortnite"
+              testimonial={{
+                id: "3",
+                name: "محمد سالم",
+                rating: 4,
+                comment: "دعم فني ممتاز ومساعدة سريعة، أنصح بالتعامل معهم",
+                game: "Fortnite",
+                avatar: "/placeholder-user.jpg",
+              }}
             />
           </div>
         </div>
