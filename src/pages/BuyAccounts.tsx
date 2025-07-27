@@ -2,7 +2,8 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { useSearchParams, useNavigate } from "react-router-dom"
+import { useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { ShoppingCart, Filter, Search, Grid, List } from "lucide-react"
 import { useInventory } from "../contexts/InventoryContext"
@@ -15,8 +16,8 @@ import GameAccountCard from "../components/GameAccountCard"
 import FilterSidebar from "../components/FilterSidebar"
 
 const BuyAccounts: React.FC = () => {
-  const [searchParams] = useSearchParams()
-  const navigate = useNavigate()
+  const searchParams = useSearchParams()
+  const router = useRouter()
   const { currentUser } = useAuth()
   const { addToCart } = useCart()
   const { addNotification } = useNotification()
@@ -84,7 +85,7 @@ const BuyAccounts: React.FC = () => {
 
   const handleGameSelect = (gameId: string) => {
     setSelectedGame(gameId)
-    navigate(`/buy-accounts?game=${gameId}`)
+    router.push(`/buy-accounts?game=${gameId}`)
   }
 
   const handleAddToCart = (accountData: any) => {
@@ -94,7 +95,7 @@ const BuyAccounts: React.FC = () => {
         title: "تسجيل الدخول مطلوب",
         message: "يجب تسجيل الدخول أولاً لإضافة العناصر للسلة",
       })
-      navigate("/login")
+      router.push("/login")
       return
     }
 
@@ -288,7 +289,7 @@ const BuyAccounts: React.FC = () => {
                         account={account}
                         viewMode={viewMode}
                         onAddToCart={() => handleAddToCart(account)}
-                        onViewDetails={() => navigate(`/account/${account.id}`)}
+                        onViewDetails={() => router.push(`/account/${account.id}`)}
                       />
                     </motion.div>
                   ))}

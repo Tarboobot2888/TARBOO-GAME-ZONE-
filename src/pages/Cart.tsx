@@ -1,7 +1,8 @@
 "use client"
 
 import type React from "react"
-import { Link, useNavigate } from "react-router-dom"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { ShoppingCart, Plus, Minus, Trash2, ArrowRight } from "lucide-react"
 import { useCart } from "../contexts/CartContext"
@@ -10,7 +11,7 @@ import { useNotification } from "../contexts/NotificationContext"
 import { formatCurrency } from "../utils/currency"
 
 const Cart: React.FC = () => {
-  const navigate = useNavigate()
+  const router = useRouter()
   const { currentUser } = useAuth()
   const { items, removeFromCart, updateQuantity, clearCart, getTotalPrice, getTotalItems } = useCart()
   const { addNotification } = useNotification()
@@ -48,10 +49,10 @@ const Cart: React.FC = () => {
         title: "تسجيل الدخول مطلوب",
         message: "يجب تسجيل الدخول أولاً لإتمام الطلب",
       })
-      navigate("/login")
+      router.push("/login")
       return
     }
-    navigate("/checkout")
+    router.push("/checkout")
   }
 
   if (items.length === 0) {
@@ -63,13 +64,13 @@ const Cart: React.FC = () => {
           <p className="text-gray-600 dark:text-gray-400 mb-8">لم تقم بإضافة أي عناصر للسلة بعد</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              to="/recharge"
+              href="/recharge"
               className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
             >
               شحن الألعاب
             </Link>
             <Link
-              to="/buy-accounts"
+              href="/buy-accounts"
               className="bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
             >
               شراء حسابات
@@ -201,7 +202,7 @@ const Cart: React.FC = () => {
               </button>
 
               <div className="mt-4 text-center">
-                <Link to="/" className="text-blue-600 hover:text-blue-700 text-sm">
+                <Link href="/" className="text-blue-600 hover:text-blue-700 text-sm">
                   متابعة التسوق
                 </Link>
               </div>

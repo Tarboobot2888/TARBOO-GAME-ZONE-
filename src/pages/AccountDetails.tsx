@@ -2,7 +2,8 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { useParams, useNavigate } from "react-router-dom"
+import { useParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { ArrowRight, Star, Shield, Eye, ShoppingCart, Heart, Share2 } from "lucide-react"
 import { useInventory } from "../contexts/InventoryContext"
 import { useAuth } from "../contexts/AuthContext"
@@ -12,8 +13,8 @@ import LoadingSpinner from "../components/LoadingSpinner"
 import { formatCurrency } from "../utils/currency"
 
 const AccountDetails: React.FC = () => {
-  const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
+  const params = useParams()
+  const router = useRouter()
   const { currentUser } = useAuth()
   const { addToCart } = useCart()
   const { addNotification } = useNotification()
@@ -22,6 +23,8 @@ const AccountDetails: React.FC = () => {
   const [account, setAccount] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
+
+  const id = params?.id as string
 
   useEffect(() => {
     if (id) {
@@ -41,7 +44,7 @@ const AccountDetails: React.FC = () => {
         title: "تسجيل الدخول مطلوب",
         message: "يجب تسجيل الدخول أولاً لإضافة العناصر للسلة",
       })
-      navigate("/login")
+      router.push("/login")
       return
     }
 
@@ -78,7 +81,7 @@ const AccountDetails: React.FC = () => {
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">الحساب غير موجود</h2>
           <p className="text-gray-600 dark:text-gray-400 mb-6">لم يتم العثور على الحساب المطلوب</p>
           <button
-            onClick={() => navigate("/buy-accounts")}
+            onClick={() => router.push("/buy-accounts")}
             className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
           >
             العودة للحسابات
@@ -93,11 +96,11 @@ const AccountDetails: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-6">
-          <button onClick={() => navigate("/")} className="hover:text-blue-600">
+          <button onClick={() => router.push("/")} className="hover:text-blue-600">
             الرئيسية
           </button>
           <ArrowRight className="h-4 w-4" />
-          <button onClick={() => navigate("/buy-accounts")} className="hover:text-blue-600">
+          <button onClick={() => router.push("/buy-accounts")} className="hover:text-blue-600">
             شراء حسابات
           </button>
           <ArrowRight className="h-4 w-4" />
@@ -252,7 +255,7 @@ const AccountDetails: React.FC = () => {
               <button
                 onClick={() => {
                   handleAddToCart()
-                  navigate("/checkout")
+                  router.push("/checkout")
                 }}
                 className="flex-1 bg-green-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-green-700 transition-colors"
               >
