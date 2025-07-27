@@ -26,11 +26,33 @@ class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: any) {
     console.error("Error caught by boundary:", error, errorInfo)
 
-    // Log error to analytics
-    logError(error.message, {
-      stack: error.stack,
-      componentStack: errorInfo.componentStack,
-      url: window.location.href,
+    // Get userId from localStorage or sessionStorage if available
+    let userId: string | undefined
+    try {
+      // Try to get user info from localStorage or other sources
+      const userDataString = localStorage.getItem("userData")
+      if (userDataString) {
+        const userData = JSON.parse(userDataString)
+        userId = userData?.uid
+      }
+    } catch (e) {
+      // If we can't get user data, that's fine - we'll log without userId
+      console.warn("Could not retrieve user data for error logging")
+    }
+
+    // Log error to analytics with proper error handling
+    logError(
+      error.message,
+      {
+        stack: error.stack,
+        componentStack: errorInfo.componentStack,
+        url: window.location.href,
+        timestamp: new Date().toISOString(),
+        userAgent: navigator.userAgent,
+      },
+      userId,
+    ).catch((logErr) => {
+      console.error("Failed to log error to analytics:", logErr)
     })
 
     this.setState({ error, errorInfo })
@@ -64,7 +86,19 @@ class ErrorBoundary extends Component<Props, State> {
                 <h3 className="text-sm font-semibold text-red-800 dark:text-red-200 mb-2">
                   تفاصيل الخطأ (وضع التطوير):
                 </h3>
-                <pre className="text-xs text-red-700 dark:text-red-300 overflow-auto">{this.state.error.message}</pre>
+                <pre className="text-xs text-red-700 dark:text-red-300 overflow-auto max-h-32">
+                  {this.state.error.message}
+                </pre>
+                {this.state.error.stack && (
+                  <details className="mt-2">
+                    <summary className="text-xs cursor-pointer text-red-600 dark:text-red-400">
+                      عرض التفاصيل الكاملة
+                    </summary>
+                    <pre className="text-xs text-red-700 dark:text-red-300 overflow-auto max-h-40 mt-2">
+                      {this.state.error.stack}
+                    </pre>
+                  </details>
+                )}
               </div>
             )}
 

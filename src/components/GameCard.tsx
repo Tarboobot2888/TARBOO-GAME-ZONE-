@@ -1,5 +1,4 @@
 import type React from "react"
-import { Link } from "react-router-dom"
 import { Star, TrendingUp } from "lucide-react"
 import { formatCurrency } from "../utils/currency"
 

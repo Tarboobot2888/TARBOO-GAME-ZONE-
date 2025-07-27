@@ -1,274 +1,348 @@
 "use client"
-
 import type React from "react"
-import { useEffect } from "react"
-import { motion } from "framer-motion"
-import { Gamepad2, ShoppingCart, Shield, Zap, Trophy, ArrowRight, CheckCircle, Clock, CreditCard } from "lucide-react"
+import { useEffect, useState } from "react"
 import { useAuth } from "../contexts/AuthContext"
 import { useInventory } from "../contexts/InventoryContext"
-import { logPageView } from "../services/analytics"
+import { useLanguage } from "../contexts/LanguageContext"
+import { useTheme } from "../contexts/ThemeContext"
 import GameCard from "../components/GameCard"
+import GameAccountCard from "../components/GameAccountCard"
 import TestimonialCard from "../components/TestimonialCard"
+import LoadingSpinner from "../components/LoadingSpinner"
+import { logPageView, logActivity } from "../services/analytics"
+import { Search, Star, Shield, Clock, Users, Trophy, Gamepad2, CreditCard } from "lucide-react"
 
 const Home: React.FC = () => {
-  const { currentUser } = useAuth()
-  const { games, featuredAccounts, loading } = useInventory()
+  const { user } = useAuth()
+  const { games = [], featuredAccounts = [], loading } = useInventory()
+  const { t } = useLanguage()
+  const { theme } = useTheme()
+  const [searchQuery, setSearchQuery] = useState("")
 
   useEffect(() => {
-    logPageView("home", currentUser?.uid)
-  }, [currentUser])
+    // Log page view
+    logPageView("home", user?.uid).catch(console.error)
 
-  const features = [
+    // Log activity
+    logActivity("page_visit", {
+      page: "home",
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent,
+    }).catch(console.error)
+  }, [user])
+
+  // Fallback data for when Firebase is loading or unavailable
+  const fallbackGames = [
     {
-      icon: <Zap className="h-8 w-8 text-yellow-500" />,
-      title: "شحن فوري",
-      description: "احصل على شحنتك في أقل من دقيقة واحدة",
+      id: "pubg-mobile",
+      name: "PUBG Mobile",
+      nameAr: "ببجي موبايل",
+      image: "/placeholder.svg?height=200&width=300&text=PUBG+Mobile",
+      category: "battle-royale",
+      categoryAr: "باتل رويال",
+      minPrice: 5,
+      maxPrice: 100,
+      currency: "USD",
+      popular: true,
+      featured: true,
+      description: "Popular battle royale game",
+      descriptionAr: "لعبة باتل رويال شهيرة",
     },
     {
-      icon: <Shield className="h-8 w-8 text-green-500" />,
-      title: "آمن ومضمون",
-      description: "جميع المعاملات محمية بأعلى معايير الأمان",
+      id: "free-fire",
+      name: "Free Fire",
+      nameAr: "فري فاير",
+      image: "/placeholder.svg?height=200&width=300&text=Free+Fire",
+      category: "battle-royale",
+      categoryAr: "باتل رويال",
+      minPrice: 3,
+      maxPrice: 50,
+      currency: "USD",
+      popular: true,
+      featured: false,
+      description: "Fast-paced battle royale",
+      descriptionAr: "باتل رويال سريع الوتيرة",
     },
     {
-      icon: <CreditCard className="h-8 w-8 text-blue-500" />,
-      title: "طرق دفع متعددة",
-      description: "ادفع بالطريقة التي تناسبك",
-    },
-    {
-      icon: <Clock className="h-8 w-8 text-purple-500" />,
-      title: "خدمة 24/7",
-      description: "فريق الدعم متاح على مدار الساعة",
+      id: "fortnite",
+      name: "Fortnite",
+      nameAr: "فورتنايت",
+      image: "/placeholder.svg?height=200&width=300&text=Fortnite",
+      category: "battle-royale",
+      categoryAr: "باتل رويال",
+      minPrice: 10,
+      maxPrice: 200,
+      currency: "USD",
+      popular: true,
+      featured: true,
+      description: "Build and battle",
+      descriptionAr: "ابني وقاتل",
     },
   ]
 
-  const stats = [
-    { number: "50K+", label: "عميل راضي" },
-    { number: "100+", label: "لعبة متاحة" },
-    { number: "99.9%", label: "معدل النجاح" },
-    { number: "24/7", label: "دعم فني" },
+  const fallbackAccounts = [
+    {
+      id: "pubg-account-1",
+      gameId: "pubg-mobile",
+      gameName: "PUBG Mobile",
+      gameNameAr: "ببجي موبايل",
+      level: 85,
+      rank: "Crown",
+      rankAr: "تاج",
+      price: 150,
+      currency: "USD",
+      image: "/placeholder.svg?height=200&width=300&text=PUBG+Account",
+      features: ["High Level", "Rare Skins", "Many Weapons"],
+      featuresAr: ["مستوى عالي", "سكنات نادرة", "أسلحة كثيرة"],
+      verified: true,
+      featured: true,
+      description: "High level PUBG account with rare items",
+      descriptionAr: "حساب ببجي مستوى عالي مع عناصر نادرة",
+    },
+    {
+      id: "ff-account-1",
+      gameId: "free-fire",
+      gameName: "Free Fire",
+      gameNameAr: "فري فاير",
+      level: 60,
+      rank: "Heroic",
+      rankAr: "بطولي",
+      price: 80,
+      currency: "USD",
+      image: "/placeholder.svg?height=200&width=300&text=Free+Fire+Account",
+      features: ["Good Rank", "Nice Skins", "Diamonds"],
+      featuresAr: ["رتبة جيدة", "سكنات جميلة", "ألماس"],
+      verified: true,
+      featured: true,
+      description: "Well-ranked Free Fire account",
+      descriptionAr: "حساب فري فاير برتبة جيدة",
+    },
   ]
 
-  const testimonials = [
-    {
-      name: "أحمد محمد",
-      rating: 5,
-      comment: "خدمة ممتازة وسريعة، أنصح بها بشدة!",
-      avatar: "/placeholder-user.jpg",
-    },
-    {
-      name: "فاطمة علي",
-      rating: 5,
-      comment: "أفضل موقع لشحن الألعاب، أسعار منافسة وخدمة رائعة",
-      avatar: "/placeholder-user.jpg",
-    },
-    {
-      name: "محمد سالم",
-      rating: 5,
-      comment: "سرعة في التنفيذ وأمان في التعامل، شكراً لكم",
-      avatar: "/placeholder-user.jpg",
-    },
-  ]
+  // Use actual data if available, otherwise use fallback
+  const displayGames = Array.isArray(games) && games.length > 0 ? games : fallbackGames
+  const displayAccounts =
+    Array.isArray(featuredAccounts) && featuredAccounts.length > 0 ? featuredAccounts : fallbackAccounts
+
+  // Filter games based on search
+  const filteredGames = displayGames.filter(
+    (game) =>
+      game?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      game?.nameAr?.includes(searchQuery) ||
+      game?.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      game?.categoryAr?.includes(searchQuery),
+  )
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      logActivity("search", {
+        query: searchQuery,
+        results: filteredGames.length,
+        timestamp: new Date().toISOString(),
+      }).catch(console.error)
+    }
+  }
+
+  if (loading && displayGames.length === 0) {
+    return <LoadingSpinner />
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 text-white overflow-hidden">
-        <div className="absolute inset-0 bg-black opacity-20"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="text-center"
-          >
-            <h1 className="text-4xl md:text-6xl font-bold mb-6">
-              <Gamepad2 className="inline-block h-16 w-16 ml-4 text-yellow-400" />
-              مرحباً بك في GameZone
-            </h1>
-            <p className="text-xl md:text-2xl mb-8 text-gray-200">منصتك المفضلة لشحن الألعاب وشراء الحسابات المميزة</p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="bg-yellow-500 hover:bg-yellow-600 text-black px-8 py-4 rounded-lg font-bold text-lg transition-all duration-200 flex items-center justify-center gap-2"
-              >
-                <Zap className="h-6 w-6" />
-                شحن الآن
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="bg-transparent border-2 border-white hover:bg-white hover:text-gray-900 px-8 py-4 rounded-lg font-bold text-lg transition-all duration-200 flex items-center justify-center gap-2"
-              >
-                <ShoppingCart className="h-6 w-6" />
-                تصفح الحسابات
-              </motion.button>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="py-16 bg-white dark:bg-gray-800">
+      <section className="bg-gradient-to-r from-blue-600 to-purple-700 text-white py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-                className="text-center"
-              >
-                <div className="text-3xl md:text-4xl font-bold text-blue-600 dark:text-blue-400 mb-2">
-                  {stat.number}
-                </div>
-                <div className="text-gray-600 dark:text-gray-400 font-medium">{stat.label}</div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
+          <div className="text-center">
+            <h1 className="text-4xl md:text-6xl font-bold mb-6">مرحباً بك في GameZone</h1>
+            <p className="text-xl md:text-2xl mb-8 opacity-90">منصتك المفضلة لشحن الألعاب وشراء الحسابات المميزة</p>
 
-      {/* Features Section */}
-      <section className="py-16 bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">لماذا تختار GameZone؟</h2>
-            <p className="text-xl text-gray-600 dark:text-gray-400">نقدم لك أفضل تجربة في عالم الألعاب</p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {features.map((feature, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-                className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300"
-              >
-                <div className="flex items-center justify-center w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-lg mb-4 mx-auto">
-                  {feature.icon}
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2 text-center">
-                  {feature.title}
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400 text-center">{feature.description}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Popular Games Section */}
-      <section className="py-16 bg-white dark:bg-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">الألعاب الأكثر شعبية</h2>
-            <p className="text-xl text-gray-600 dark:text-gray-400">اشحن ألعابك المفضلة بأفضل الأسعار</p>
-          </motion.div>
-
-          {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-              {[...Array(6)].map((_, index) => (
-                <div key={index} className="animate-pulse">
-                  <div className="bg-gray-300 dark:bg-gray-700 h-32 rounded-lg mb-4"></div>
-                  <div className="bg-gray-300 dark:bg-gray-700 h-4 rounded mb-2"></div>
-                  <div className="bg-gray-300 dark:bg-gray-700 h-3 rounded"></div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-              {games.slice(0, 6).map((game, index) => (
-                <motion.div
-                  key={game.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: index * 0.1 }}
+            {/* Search Bar */}
+            <form onSubmit={handleSearch} className="max-w-2xl mx-auto mb-8">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="ابحث عن لعبتك المفضلة..."
+                  className="w-full px-6 py-4 pr-12 text-gray-900 bg-white rounded-full shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  type="submit"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-blue-600"
                 >
-                  <GameCard game={game} />
-                </motion.div>
-              ))}
+                  <Search className="h-6 w-6" />
+                </button>
+              </div>
+            </form>
+
+            {/* Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
+              <div className="text-center">
+                <div className="flex justify-center mb-2">
+                  <Users className="h-8 w-8" />
+                </div>
+                <div className="text-2xl font-bold">50K+</div>
+                <div className="text-sm opacity-80">عميل راضي</div>
+              </div>
+              <div className="text-center">
+                <div className="flex justify-center mb-2">
+                  <Gamepad2 className="h-8 w-8" />
+                </div>
+                <div className="text-2xl font-bold">100+</div>
+                <div className="text-sm opacity-80">لعبة متاحة</div>
+              </div>
+              <div className="text-center">
+                <div className="flex justify-center mb-2">
+                  <Shield className="h-8 w-8" />
+                </div>
+                <div className="text-2xl font-bold">99.9%</div>
+                <div className="text-sm opacity-80">معدل الأمان</div>
+              </div>
+              <div className="text-center">
+                <div className="flex justify-center mb-2">
+                  <Clock className="h-8 w-8" />
+                </div>
+                <div className="text-2xl font-bold">24/7</div>
+                <div className="text-sm opacity-80">دعم فني</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Games */}
+      <section className="py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">الألعاب المميزة</h2>
+            <p className="text-xl text-gray-600 dark:text-gray-400">اشحن ألعابك المفضلة بأسرع وقت وأفضل الأسعار</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredGames.slice(0, 6).map((game) => (
+              <GameCard key={game.id} game={game} />
+            ))}
+          </div>
+
+          {filteredGames.length > 6 && (
+            <div className="text-center mt-12">
+              <button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors">
+                عرض المزيد من الألعاب
+              </button>
             </div>
           )}
-
-          <div className="text-center mt-12">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 mx-auto"
-            >
-              عرض جميع الألعاب
-              <ArrowRight className="h-5 w-5" />
-            </motion.button>
-          </div>
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section className="py-16 bg-gray-50 dark:bg-gray-900">
+      {/* Featured Accounts */}
+      <section className="py-16 bg-gray-100 dark:bg-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">ماذا يقول عملاؤنا؟</h2>
-            <p className="text-xl text-gray-600 dark:text-gray-400">آراء حقيقية من عملائنا الكرام</p>
-          </motion.div>
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">حسابات مميزة</h2>
+            <p className="text-xl text-gray-600 dark:text-gray-400">اشتري حسابات مضمونة ومميزة لألعابك المفضلة</p>
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-              >
-                <TestimonialCard testimonial={testimonial} />
-              </motion.div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {displayAccounts.slice(0, 6).map((account) => (
+              <GameAccountCard key={account.id} account={account} />
             ))}
           </div>
+
+          <div className="text-center mt-12">
+            <button className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors">
+              عرض جميع الحسابات
+            </button>
+          </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-16 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">ابدأ رحلتك معنا الآن!</h2>
-            <p className="text-xl mb-8 text-gray-200">انضم إلى آلاف اللاعبين الذين يثقون بنا</p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-4 rounded-lg font-bold text-lg transition-all duration-200 flex items-center justify-center gap-2"
-              >
-                <CheckCircle className="h-6 w-6" />
-                إنشاء حساب مجاني
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="bg-transparent border-2 border-white hover:bg-white hover:text-blue-600 px-8 py-4 rounded-lg font-bold text-lg transition-all duration-200 flex items-center justify-center gap-2"
-              >
-                <Trophy className="h-6 w-6" />
-                تصفح العروض
-              </motion.button>
+      {/* Features */}
+      <section className="py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">لماذا تختار GameZone؟</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+              <div className="flex justify-center mb-4">
+                <Shield className="h-12 w-12 text-blue-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">أمان مضمون</h3>
+              <p className="text-gray-600 dark:text-gray-400">جميع المعاملات محمية بأعلى معايير الأمان والحماية</p>
             </div>
-          </motion.div>
+
+            <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+              <div className="flex justify-center mb-4">
+                <Clock className="h-12 w-12 text-green-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">سرعة في التسليم</h3>
+              <p className="text-gray-600 dark:text-gray-400">تسليم فوري للشحنات والحسابات خلال دقائق معدودة</p>
+            </div>
+
+            <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+              <div className="flex justify-center mb-4">
+                <CreditCard className="h-12 w-12 text-purple-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">طرق دفع متنوعة</h3>
+              <p className="text-gray-600 dark:text-gray-400">ندعم جميع طرق الدفع المحلية والعالمية لراحتك</p>
+            </div>
+
+            <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+              <div className="flex justify-center mb-4">
+                <Users className="h-12 w-12 text-red-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">دعم فني 24/7</h3>
+              <p className="text-gray-600 dark:text-gray-400">فريق دعم متاح على مدار الساعة لمساعدتك وحل مشاكلك</p>
+            </div>
+
+            <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+              <div className="flex justify-center mb-4">
+                <Trophy className="h-12 w-12 text-yellow-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">جودة مضمونة</h3>
+              <p className="text-gray-600 dark:text-gray-400">جميع الحسابات والخدمات مفحوصة ومضمونة الجودة</p>
+            </div>
+
+            <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+              <div className="flex justify-center mb-4">
+                <Star className="h-12 w-12 text-orange-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">أسعار تنافسية</h3>
+              <p className="text-gray-600 dark:text-gray-400">أفضل الأسعار في السوق مع عروض وخصومات مستمرة</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="py-16 bg-gray-100 dark:bg-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">ماذا يقول عملاؤنا</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <TestimonialCard
+              name="أحمد محمد"
+              rating={5}
+              comment="خدمة ممتازة وسريعة، تم تسليم الشحنة خلال دقائق"
+              game="PUBG Mobile"
+            />
+            <TestimonialCard
+              name="فاطمة علي"
+              rating={5}
+              comment="أفضل موقع لشراء حسابات الألعاب، جودة عالية وأسعار مناسبة"
+              game="Free Fire"
+            />
+            <TestimonialCard
+              name="محمد سالم"
+              rating={4}
+              comment="دعم فني ممتاز ومساعدة سريعة، أنصح بالتعامل معهم"
+              game="Fortnite"
+            />
+          </div>
         </div>
       </section>
     </div>

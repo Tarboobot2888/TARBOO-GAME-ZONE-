@@ -12,15 +12,53 @@ export interface AnalyticsEvent {
   metadata?: any
 }
 
+// Helper function to clean objects by removing undefined values
+const cleanObject = (obj: any): any => {
+  if (obj === null || obj === undefined) {
+    return {}
+  }
+
+  if (typeof obj !== "object") {
+    return obj
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map((item) => cleanObject(item)).filter((item) => item !== undefined)
+  }
+
+  const cleaned: any = {}
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined && value !== null) {
+      if (typeof value === "object") {
+        const cleanedValue = cleanObject(value)
+        if (Object.keys(cleanedValue).length > 0 || Array.isArray(cleanedValue)) {
+          cleaned[key] = cleanedValue
+        }
+      } else {
+        cleaned[key] = value
+      }
+    }
+  }
+  return cleaned
+}
+
 export const logActivity = async (action: string, data: any) => {
   try {
+    if (!action || typeof action !== "string") {
+      console.warn("Invalid action parameter for logActivity")
+      return
+    }
+
+    // Clean data to remove undefined values
+    const cleanData = cleanObject(data)
+
     await addDoc(collection(db, "analytics"), {
       action,
-      data,
+      data: cleanData,
       timestamp: serverTimestamp(),
-      userAgent: navigator.userAgent,
-      url: window.location.href,
-      referrer: document.referrer,
+      userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
+      url: typeof window !== "undefined" ? window.location.href : "",
+      referrer: typeof document !== "undefined" ? document.referrer : "",
       sessionId: getSessionId(),
     })
   } catch (error) {
@@ -30,13 +68,27 @@ export const logActivity = async (action: string, data: any) => {
 
 export const logUserAction = async (userId: string, action: string, data: any) => {
   try {
+    // Only proceed if userId is valid
+    if (!userId || typeof userId !== "string" || userId.trim() === "") {
+      console.warn("Cannot log user action: userId is invalid")
+      return
+    }
+
+    if (!action || typeof action !== "string") {
+      console.warn("Cannot log user action: action is invalid")
+      return
+    }
+
+    // Clean data to remove undefined values
+    const cleanData = cleanObject(data)
+
     await addDoc(collection(db, "userActions"), {
       userId,
       action,
-      data,
+      data: cleanData,
       timestamp: serverTimestamp(),
-      userAgent: navigator.userAgent,
-      url: window.location.href,
+      userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
+      url: typeof window !== "undefined" ? window.location.href : "",
       sessionId: getSessionId(),
     })
 
@@ -53,18 +105,32 @@ export const logUserAction = async (userId: string, action: string, data: any) =
 
 export const logPageView = async (page: string, userId?: string) => {
   try {
-    await addDoc(collection(db, "pageViews"), {
+    if (!page || typeof page !== "string") {
+      console.warn("Invalid page parameter for logPageView")
+      return
+    }
+
+    const pageViewData: any = {
       page,
-      userId,
       timestamp: serverTimestamp(),
-      userAgent: navigator.userAgent,
-      referrer: document.referrer,
+      userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
+      referrer: typeof document !== "undefined" ? document.referrer : "",
       sessionId: getSessionId(),
-      viewport: {
-        width: window.innerWidth,
-        height: window.innerHeight,
-      },
-    })
+      viewport:
+        typeof window !== "undefined"
+          ? {
+              width: window.innerWidth,
+              height: window.innerHeight,
+            }
+          : {},
+    }
+
+    // Only add userId if it's defined and valid
+    if (userId && typeof userId === "string" && userId.trim() !== "") {
+      pageViewData.userId = userId
+    }
+
+    await addDoc(collection(db, "pageViews"), pageViewData)
 
     // Update daily stats
     const today = new Date().toISOString().split("T")[0]
@@ -91,6 +157,12 @@ export const logPageView = async (page: string, userId?: string) => {
 
 export const logPurchase = async (orderId: string, amount: number, gameId: string, userId: string) => {
   try {
+    // Validate required parameters
+    if (!orderId || !amount || !gameId || !userId) {
+      console.warn("Cannot log purchase: missing required parameters")
+      return
+    }
+
     await addDoc(collection(db, "purchases"), {
       orderId,
       amount,
@@ -136,13 +208,24 @@ export const logPurchase = async (orderId: string, amount: number, gameId: strin
 
 export const logSearch = async (query: string, results: number, userId?: string) => {
   try {
-    await addDoc(collection(db, "searches"), {
+    if (!query || typeof query !== "string") {
+      console.warn("Cannot log search: query is empty or invalid")
+      return
+    }
+
+    const searchData: any = {
       query: query.toLowerCase(),
-      results,
-      userId,
+      results: results || 0,
       timestamp: serverTimestamp(),
       sessionId: getSessionId(),
-    })
+    }
+
+    // Only add userId if it's defined and valid
+    if (userId && typeof userId === "string" && userId.trim() !== "") {
+      searchData.userId = userId
+    }
+
+    await addDoc(collection(db, "searches"), searchData)
 
     // Update search stats
     const today = new Date().toISOString().split("T")[0]
@@ -169,15 +252,29 @@ export const logSearch = async (query: string, results: number, userId?: string)
 
 export const logError = async (error: string, context: any, userId?: string) => {
   try {
-    await addDoc(collection(db, "errors"), {
-      error,
-      context,
-      userId,
+    if (!error || typeof error !== "string") {
+      console.warn("Cannot log error: error message is empty or invalid")
+      return
+    }
+
+    // Clean context to remove undefined values
+    const cleanContext = cleanObject(context)
+
+    const errorData: any = {
+      error: error.trim(),
+      context: cleanContext,
       timestamp: serverTimestamp(),
-      userAgent: navigator.userAgent,
-      url: window.location.href,
+      userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
+      url: typeof window !== "undefined" ? window.location.href : "",
       sessionId: getSessionId(),
-    })
+    }
+
+    // Only add userId if it's defined and not empty
+    if (userId && typeof userId === "string" && userId.trim() !== "") {
+      errorData.userId = userId
+    }
+
+    await addDoc(collection(db, "errors"), errorData)
   } catch (err) {
     console.error("Error logging error:", err)
   }
@@ -185,13 +282,26 @@ export const logError = async (error: string, context: any, userId?: string) => 
 
 export const logPerformance = async (metric: string, value: number, context?: any) => {
   try {
+    if (!metric || typeof metric !== "string") {
+      console.warn("Cannot log performance: invalid metric")
+      return
+    }
+
+    if (typeof value !== "number" || isNaN(value)) {
+      console.warn("Cannot log performance: invalid value")
+      return
+    }
+
+    // Clean context to remove undefined values
+    const cleanContext = context ? cleanObject(context) : {}
+
     await addDoc(collection(db, "performance"), {
       metric,
       value,
-      context,
+      context: cleanContext,
       timestamp: serverTimestamp(),
-      userAgent: navigator.userAgent,
-      url: window.location.href,
+      userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
+      url: typeof window !== "undefined" ? window.location.href : "",
       sessionId: getSessionId(),
     })
   } catch (error) {
@@ -200,6 +310,10 @@ export const logPerformance = async (metric: string, value: number, context?: an
 }
 
 export const getSessionId = (): string => {
+  if (typeof window === "undefined") {
+    return "server-session"
+  }
+
   let sessionId = sessionStorage.getItem("sessionId")
   if (!sessionId) {
     sessionId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
@@ -210,8 +324,11 @@ export const getSessionId = (): string => {
 
 export const trackEvent = async (event: Omit<AnalyticsEvent, "timestamp">) => {
   try {
+    // Clean event data to remove undefined values
+    const cleanEvent = cleanObject(event)
+
     await addDoc(collection(db, "events"), {
-      ...event,
+      ...cleanEvent,
       timestamp: serverTimestamp(),
       sessionId: getSessionId(),
     })
@@ -246,12 +363,29 @@ export const getRealtimeStats = async () => {
 
 export const updateUserEngagement = async (userId: string, action: string, duration?: number) => {
   try {
+    if (!userId || typeof userId !== "string" || userId.trim() === "") {
+      console.warn("Cannot update user engagement: missing or invalid userId")
+      return
+    }
+
+    if (!action || typeof action !== "string") {
+      console.warn("Cannot update user engagement: missing or invalid action")
+      return
+    }
+
     const userRef = doc(db, "users", userId)
-    await updateDoc(userRef, {
+    const updateData: any = {
       "stats.lastActiveAt": serverTimestamp(),
       "stats.engagementScore": increment(1),
-      [`stats.timeSpent.${action}`]: increment(duration || 1),
-    })
+    }
+
+    if (duration && typeof duration === "number" && !isNaN(duration)) {
+      updateData[`stats.timeSpent.${action}`] = increment(duration)
+    } else {
+      updateData[`stats.timeSpent.${action}`] = increment(1)
+    }
+
+    await updateDoc(userRef, updateData)
   } catch (error) {
     console.error("Error updating user engagement:", error)
   }
