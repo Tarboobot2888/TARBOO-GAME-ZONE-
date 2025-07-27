@@ -86,36 +86,56 @@ const Home: React.FC = () => {
       gameId: "pubg-mobile",
       gameName: "PUBG Mobile",
       gameNameAr: "ببجي موبايل",
+      title: "حساب ببجي مستوى عالي",
       level: 85,
       rank: "Crown",
       rankAr: "تاج",
       price: 150,
       currency: "USD",
-      image: "/placeholder.svg?height=200&width=300&text=PUBG+Account",
+      images: ["/placeholder.svg?height=200&width=300&text=PUBG+Account"],
       features: ["High Level", "Rare Skins", "Many Weapons"],
       featuresAr: ["مستوى عالي", "سكنات نادرة", "أسلحة كثيرة"],
       verified: true,
       featured: true,
+      platform: "android" as const,
+      condition: "excellent" as const,
+      warranty: true,
+      guaranteeDays: 30,
       description: "High level PUBG account with rare items",
-      descriptionAr: "حساب ببجي مستوى عالي مع عناصر نادرة",
+      seller: {
+        id: "seller1",
+        name: "أحمد محمد",
+        rating: 4.8,
+        verified: true,
+      },
     },
     {
       id: "ff-account-1",
       gameId: "free-fire",
       gameName: "Free Fire",
       gameNameAr: "فري فاير",
+      title: "حساب فري فاير برتبة عالية",
       level: 60,
       rank: "Heroic",
       rankAr: "بطولي",
       price: 80,
       currency: "USD",
-      image: "/placeholder.svg?height=200&width=300&text=Free+Fire+Account",
+      images: ["/placeholder.svg?height=200&width=300&text=Free+Fire+Account"],
       features: ["Good Rank", "Nice Skins", "Diamonds"],
       featuresAr: ["رتبة جيدة", "سكنات جميلة", "ألماس"],
       verified: true,
       featured: true,
+      platform: "ios" as const,
+      condition: "new" as const,
+      warranty: true,
+      guaranteeDays: 15,
       description: "Well-ranked Free Fire account",
-      descriptionAr: "حساب فري فاير برتبة جيدة",
+      seller: {
+        id: "seller2",
+        name: "فاطمة علي",
+        rating: 4.9,
+        verified: true,
+      },
     },
   ]
 
@@ -142,6 +162,16 @@ const Home: React.FC = () => {
         timestamp: new Date().toISOString(),
       }).catch(console.error)
     }
+  }
+
+  const handleAddToCart = (accountId: string) => {
+    console.log("Adding to cart:", accountId)
+    // TODO: Implement cart functionality
+  }
+
+  const handleViewDetails = (accountId: string) => {
+    console.log("Viewing details:", accountId)
+    // TODO: Navigate to account details page
   }
 
   if (loading && displayGames.length === 0) {
@@ -245,7 +275,12 @@ const Home: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {displayAccounts.slice(0, 6).map((account) => (
-              <GameAccountCard key={account.id} account={account} />
+              <GameAccountCard
+                key={account.id}
+                account={account}
+                onAddToCart={() => handleAddToCart(account.id)}
+                onViewDetails={() => handleViewDetails(account.id)}
+              />
             ))}
           </div>
 

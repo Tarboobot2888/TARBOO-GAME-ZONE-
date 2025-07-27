@@ -1,18 +1,24 @@
 "use client"
 
 import type React from "react"
-import { Star, TrendingUp } from "lucide-react"
+import Link from "next/link"
+import { Star, TrendingUp, Gamepad2 } from "lucide-react"
 import { formatCurrency } from "../utils/currency"
 
 interface Game {
   id: string
   name: string
-  nameAr: string
+  nameAr?: string
   image: string
   category: string
-  isPopular?: boolean
+  categoryAr?: string
   minPrice: number
   maxPrice: number
+  currency: string
+  popular?: boolean
+  featured?: boolean
+  description?: string
+  descriptionAr?: string
 }
 
 interface GameCardProps {
@@ -20,91 +26,86 @@ interface GameCardProps {
 }
 
 const GameCard: React.FC<GameCardProps> = ({ game }) => {
-  const handleRechargeClick = () => {
-    // For now, just log the action since we don't have routing
-    console.log(`Recharge clicked for game: ${game.name}`)
-  }
-
-  const handleBuyAccountClick = () => {
-    // For now, just log the action since we don't have routing
-    console.log(`Buy account clicked for game: ${game.name}`)
-  }
+  const displayName = game.nameAr || game.name
+  const displayCategory = game.categoryAr || game.category
+  const displayDescription = game.descriptionAr || game.description
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow group">
       <div className="relative">
         <img
-          src={game.image || "/placeholder.svg"}
-          alt={game.nameAr}
+          src={game.image || "/placeholder.svg?height=200&width=300"}
+          alt={displayName}
           className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
         />
-        {game.isPopular && (
-          <div className="absolute top-2 right-2 bg-yellow-500 text-black px-2 py-1 rounded-full text-xs font-semibold flex items-center">
-            <TrendingUp className="h-3 w-3 ml-1" />
-            شائع
-          </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-      </div>
 
-      <div className="p-4">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{game.nameAr}</h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{game.name}</p>
-
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center">
-            <Star className="h-4 w-4 text-yellow-500 fill-current" />
-            <Star className="h-4 w-4 text-yellow-500 fill-current" />
-            <Star className="h-4 w-4 text-yellow-500 fill-current" />
-            <Star className="h-4 w-4 text-yellow-500 fill-current" />
-            <Star className="h-4 w-4 text-yellow-500 fill-current" />
-            <span className="text-sm text-gray-600 dark:text-gray-400 mr-1">(4.9)</span>
-          </div>
-          <span className="text-sm bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
-            {getCategoryName(game.category)}
-          </span>
+        {/* Badges */}
+        <div className="absolute top-2 right-2 flex flex-col gap-2">
+          {game.popular && (
+            <span className="bg-yellow-500 text-black px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+              <TrendingUp className="h-3 w-3" />
+              شائع
+            </span>
+          )}
+          {game.featured && (
+            <span className="bg-purple-500 text-white px-2 py-1 rounded-full text-xs font-semibold">مميز</span>
+          )}
         </div>
 
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <span className="text-sm text-gray-600 dark:text-gray-400">من </span>
-            <span className="text-lg font-bold text-green-600">{formatCurrency(game.minPrice)}</span>
+        {/* Game Icon */}
+        <div className="absolute top-2 left-2">
+          <div className="bg-black bg-opacity-50 text-white p-2 rounded-full">
+            <Gamepad2 className="h-4 w-4" />
           </div>
-          <div>
-            <span className="text-sm text-gray-600 dark:text-gray-400">إلى </span>
+        </div>
+      </div>
+
+      <div className="p-6">
+        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{displayName}</h3>
+        <p className="text-gray-600 dark:text-gray-400 text-sm mb-3">{displayCategory}</p>
+
+        {displayDescription && (
+          <p className="text-gray-700 dark:text-gray-300 text-sm mb-4 line-clamp-2">{displayDescription}</p>
+        )}
+
+        {/* Price Range */}
+        <div className="mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600 dark:text-gray-400">من</span>
+            <span className="text-lg font-bold text-green-600">{formatCurrency(game.minPrice)}</span>
+            <span className="text-sm text-gray-600 dark:text-gray-400">إلى</span>
             <span className="text-lg font-bold text-green-600">{formatCurrency(game.maxPrice)}</span>
           </div>
         </div>
 
+        {/* Rating */}
+        <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <Star key={star} className="h-4 w-4 text-yellow-500 fill-current" />
+            ))}
+          </div>
+          <span className="text-sm text-gray-600 dark:text-gray-400">(4.8)</span>
+        </div>
+
+        {/* Action Buttons */}
         <div className="flex gap-2">
-          <button
-            onClick={handleRechargeClick}
-            className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg text-center hover:bg-blue-700 transition-colors text-sm font-medium"
+          <Link
+            href={`/recharge/${game.id}`}
+            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-semibold transition-colors text-center"
           >
-            شحن
-          </button>
-          <button
-            onClick={handleBuyAccountClick}
-            className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 py-2 px-4 rounded-lg text-center hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
+            شحن الآن
+          </Link>
+          <Link
+            href={`/buy-accounts?game=${game.id}`}
+            className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg font-semibold transition-colors text-center"
           >
             شراء حساب
-          </button>
+          </Link>
         </div>
       </div>
     </div>
   )
-}
-
-const getCategoryName = (category: string): string => {
-  const categories: { [key: string]: string } = {
-    sports: "رياضة",
-    "battle-royale": "باتل رويال",
-    fps: "إطلاق نار",
-    strategy: "استراتيجية",
-    racing: "سباق",
-    adventure: "مغامرة",
-  }
-  return categories[category] || category
 }
 
 export default GameCard
